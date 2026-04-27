@@ -1,0 +1,35 @@
+/* Tokens espelhando o legado (css/style.css) — base para shell e UI. */
+:root {
+  --lum-navy: #002b5b;
+  --lum-navy-mid: #1b4f8a;
+  --lum-topbar-gradient: linear-gradient(90deg, #002b5b, #1b4f8a);
+  --lum-sidebar-header-gradient: var(--lum-topbar-gradient);
+  --lum-ink: #1f2937;
+  --lum-ink-muted: #6b7280;
+  --lum-ink-faint: #9ca3af;
+  --lum-border: #e5e7eb;
+  --lum-border-soft: #f3f4f6;
+  --lum-surface: #ffffff;
+  --lum-page-bg: #f9fafb;
+  --lum-nav-hover: #f0f5ff;
+  --lum-nav-active-bg: #eef2ff;
+  --lum-danger: #dc2626;
+  --lum-accent: #002b5b;
+  --lum-topbar-h: 56px;
+  --lum-sidebar-w: 280px;
+  --lum-radius-card: 16px;
+  --lum-shadow-card: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --lum-font: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+}
+
+.lumAppShell[data-legacy-dark='true'] {
+  --lum-ink: #f9fafb;
+  --lum-ink-muted: #d1d5db;
+  --lum-ink-faint: #9ca3af;
+  --lum-border: #374151;
+  --lum-border-soft: #1f2937;
+  --lum-surface: #111827;
+  --lum-page-bg: #0b1220;
+  --lum-nav-hover: rgba(99, 102, 241, 0.12);
+  --lum-nav-active-bg: rgba(99, 102, 241, 0.18);
+}

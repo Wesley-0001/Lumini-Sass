@@ -1,0 +1,26 @@
+.lead {
+  margin: 0 0 12px;
+  line-height: 1.55;
+  color: var(--lum-ink-muted);
+  font-size: 14px;
+}
+
+.hint {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: var(--lum-nav-hover);
+  border: 1px solid var(--lum-border-soft);
+  font-size: 0.9rem;
+  color: var(--lum-ink-muted);
+}
+
+.hintLabel {
+  font-weight: 600;
+  margin-right: 6px;
+  color: var(--lum-ink);
+}
+
+.muted {
+  color: var(--lum-ink-faint);
+}

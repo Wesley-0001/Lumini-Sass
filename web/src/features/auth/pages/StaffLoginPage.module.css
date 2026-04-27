@@ -1,0 +1,7 @@
+/* Framer Motion: as estampas decorativas voltam a ser interativas (arraste + spring) */
+
+.stampLayer :global(.stamp-float) {
+  pointer-events: all;
+  cursor: grab;
+}
+
