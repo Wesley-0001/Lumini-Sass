@@ -65,8 +65,6 @@ function globalEval(code: string, label: string): void {
 import dataJs from '../../../js/data.js?raw'
 import permissionsJs from '../../../js/permissions.js?raw'
 import notificationsModuleJs from '../../../js/notifications-module.js?raw'
-import teamsModuleJs from '../../../js/teams-module.js?raw'
-import commsModuleJs from '../../../js/comms-module.js?raw'
 import rhDataJs from '../../../js/rh-data.js?raw'
 import rhModuleJs from '../../../js/rh-module.js?raw'
 import rhHoleritesModuleJs from '../../../js/rh-holerites-module.js?raw'
@@ -108,25 +106,19 @@ export function loadLegacyRuntime(): Promise<void> {
     // 5) notifications-module.js
     globalEval(notificationsModuleJs, 'legacy:notifications-module.js')
 
-    // 6) teams-module.js
-    globalEval(teamsModuleJs, 'legacy:teams-module.js')
-
-    // 7) comms-module.js
-    globalEval(commsModuleJs, 'legacy:comms-module.js')
-
-    // 8) rh-data.js
+    // 6) rh-data.js
     globalEval(rhDataJs, 'legacy:rh-data.js')
 
-    // 9) rh-module.js
+    // 7) rh-module.js
     globalEval(rhModuleJs, 'legacy:rh-module.js')
 
-    // 10) rh-holerites-module.js
+    // 8) rh-holerites-module.js
     globalEval(rhHoleritesModuleJs, 'legacy:rh-holerites-module.js')
 
-    // 11) daily-attendance-module.js
+    // 9) daily-attendance-module.js
     globalEval(dailyAttendanceModuleJs, 'legacy:daily-attendance-module.js')
 
-    // 12) app.js
+    // 10) app.js
     globalEval(appJs, 'legacy:app.js')
   })()
 

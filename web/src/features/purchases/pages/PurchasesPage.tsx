@@ -2,10 +2,11 @@ import { useEffect, useMemo, useState } from 'react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Button, Card, FormField, FormRow, Modal, ModalFooter } from '@/components/ui'
 import { useStaffAuth } from '@/app/providers/staffAuthContext'
-import { loadLegacyRuntime } from '@/lib/legacyLoader'
 import { useToast } from '@/components/ui/toast/toastContext'
 import { tryGetFirestoreDb } from '@/services/firebase/app'
 import { addInAppNotification, batchAddInAppNotifications } from '@/features/notifications/notificationsApi'
+import { deletePurchase, loadProducts, loadPurchases, loadSuppliers, type Product, type Supplier, upsertPurchase } from '@/features/purchases/purchasesFirestore'
+import { loadUsersFromFirestore } from '@/features/users/persistUsers'
 
 type PurchaseStatus = 'pending' | 'approved' | 'purchased' | 'delivered' | 'cancelled'
 
@@ -43,9 +44,6 @@ export type PurchaseRequest = {
   deliveredAt?: number
 }
 
-type Supplier = { id: string; name?: string; contact?: string }
-type Product = { id: string; name?: string; unit?: string; price?: number }
-
 const STATUS_META: Record<PurchaseStatus, { label: string; cls: string; icon: string }> = {
   pending: { label: 'Pendente', cls: 'badge-warning', icon: '⏳' },
   approved: { label: 'Aprovada', cls: 'badge-info', icon: '✅' },
@@ -62,22 +60,6 @@ function normEmail(v: unknown): string {
   return String(v ?? '')
     .trim()
     .toLowerCase()
-}
-
-function getActiveUsersCompat(): Array<{ email: string; name?: string; role?: string; active?: boolean }> {
-  const arr = (window as any)?._cache?.users
-  const users = Array.isArray(arr) ? arr : []
-  return users.filter((u: any) => u?.active !== false)
-}
-
-function resolveEmailByNameCompat(name: unknown): string {
-  const n = String(name ?? '')
-    .trim()
-    .toLowerCase()
-  if (!n) return ''
-  const users = getActiveUsersCompat()
-  const u = users.find((x) => String(x?.name ?? '').trim().toLowerCase() === n)
-  return u?.email ? normEmail(u.email) : ''
 }
 
 function fmtCurrency(v: unknown): string {
@@ -98,40 +80,11 @@ function buildId(): string {
   return `pur-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
 }
 
-function getCurrentUserCompat(userFromAuth: any): { name: string; email: string; role: string } {
-  const w = window as any
-  const fallback = w?.currentUser
+function getCurrentUser(userFromAuth: any): { name: string; email: string; role: string } {
   return {
-    name: String(userFromAuth?.name ?? fallback?.name ?? 'Sistema'),
-    email: String(userFromAuth?.email ?? fallback?.email ?? ''),
-    role: String(userFromAuth?.role ?? fallback?.role ?? 'supervisor'),
-  }
-}
-
-function getSuppliers(): Supplier[] {
-  const w = window as any
-  const arr = w?._cache?.suppliers
-  return Array.isArray(arr) ? (arr as Supplier[]) : []
-}
-
-function getProducts(): Product[] {
-  const w = window as any
-  const arr = w?._cache?.products
-  return Array.isArray(arr) ? (arr as Product[]) : []
-}
-
-function getPurchases(): PurchaseRequest[] {
-  const w = window as any
-  const arr = w?._cache?.purchases
-  return Array.isArray(arr) ? (arr as PurchaseRequest[]) : []
-}
-
-async function persistPurchases(next: PurchaseRequest[]): Promise<void> {
-  const w = window as any
-  if (!w._cache) w._cache = {}
-  w._cache.purchases = next
-  if (typeof w.persistCollection === 'function') {
-    await w.persistCollection('purchases', next)
+    name: String(userFromAuth?.name ?? 'Sistema'),
+    email: String(userFromAuth?.email ?? ''),
+    role: String(userFromAuth?.role ?? 'supervisor'),
   }
 }
 
@@ -161,11 +114,14 @@ function calcTotal(items: PurchaseItem[]): number {
 export function PurchasesPage() {
   const { user } = useStaffAuth()
   const { pushToast } = useToast()
+  const db = useMemo(() => tryGetFirestoreDb(), [])
 
-  const me = useMemo(() => getCurrentUserCompat(user), [user])
+  const me = useMemo(() => getCurrentUser(user), [user])
 
   const [ready, setReady] = useState(false)
   const [items, setItems] = useState<PurchaseRequest[]>([])
+  const [suppliers, setSuppliers] = useState<Supplier[]>([])
+  const [products, setProducts] = useState<Product[]>([])
 
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState<'' | PurchaseStatus>('')
@@ -184,21 +140,54 @@ export function PurchasesPage() {
   const canApprove = me.role === 'admin' || me.role === 'manager' || me.role === 'boss'
   const canCreate = me.role !== 'boss'
 
+  async function resolveRequesterEmailCompat(p: PurchaseRequest): Promise<string> {
+    const direct = normEmail(p.requesterEmail)
+    if (direct) return direct
+    const requesterName = String(p.requester || '').trim().toLowerCase()
+    if (!requesterName) return ''
+    try {
+      const users = await loadUsersFromFirestore()
+      const hit = users
+        .filter((u) => u?.active !== false)
+        .find((u) => String(u?.name ?? '').trim().toLowerCase() === requesterName)
+      return hit?.email ? normEmail(hit.email) : ''
+    } catch {
+      return ''
+    }
+  }
+
   useEffect(() => {
+    if (!db) {
+      setReady(true)
+      setItems([])
+      setSuppliers([])
+      setProducts([])
+      return
+    }
+
     let cancelled = false
     void (async () => {
-      await loadLegacyRuntime()
-      if (cancelled) return
-      setItems(getPurchases())
-      setReady(true)
+      try {
+        const [purs, sups, prods] = await Promise.all([loadPurchases(db), loadSuppliers(db), loadProducts(db)])
+        if (cancelled) return
+        setItems(purs)
+        setSuppliers(sups)
+        setProducts(prods)
+        setReady(true)
+      } catch {
+        if (!cancelled) {
+          setReady(true)
+          setItems([])
+          setSuppliers([])
+          setProducts([])
+        }
+      }
     })()
+
     return () => {
       cancelled = true
     }
   }, [])
-
-  const suppliers = useMemo(() => getSuppliers(), [ready, items.length])
-  const products = useMemo(() => getProducts(), [ready, items.length])
 
   const filtered = useMemo(() => {
     let out = items.slice()
@@ -292,6 +281,10 @@ export function PurchasesPage() {
 
   async function saveDraft() {
     if (!canCreate) return
+    if (!db) {
+      pushToast('Firebase não configurado. Configure VITE_FIREBASE_* para salvar.', 'warning')
+      return
+    }
     const title = draftTitle.trim()
     if (!title) {
       pushToast('Informe o título da requisição.', 'warning')
@@ -348,7 +341,8 @@ export function PurchasesPage() {
         ]
 
     setItems(next)
-    await persistPurchases(next)
+    const saved = next.find((x) => x.id === (editingId || next[next.length - 1]?.id))
+    if (saved) await upsertPurchase(db, saved)
     setEditorOpen(false)
     pushToast(editingId ? 'Requisição atualizada.' : 'Requisição criada.', 'success')
   }
@@ -356,6 +350,10 @@ export function PurchasesPage() {
   async function removePurchase(id: string) {
     const p = items.find((x) => x.id === id)
     if (!p) return
+    if (!db) {
+      pushToast('Firebase não configurado. Não foi possível excluir.', 'warning')
+      return
+    }
     const cancelPending = p.cancelRequestStatus === 'pending'
     const canEdit = (p.status || 'pending') === 'pending' && me.role !== 'boss' && !cancelPending
     if (!canEdit) return
@@ -363,7 +361,7 @@ export function PurchasesPage() {
     if (!ok) return
     const next = items.filter((x) => x.id !== id)
     setItems(next)
-    await persistPurchases(next)
+    await deletePurchase(db, id)
     pushToast('Requisição excluída.', 'info')
   }
 
@@ -371,6 +369,10 @@ export function PurchasesPage() {
     if (!canApprove) return
     const p = items.find((x) => x.id === id)
     if (!p) return
+    if (!db) {
+      pushToast('Firebase não configurado. Não foi possível atualizar status.', 'warning')
+      return
+    }
     if (p.cancelRequestStatus === 'pending') return
 
     const labels: Partial<Record<PurchaseStatus, string>> = {
@@ -393,14 +395,13 @@ export function PurchasesPage() {
     })
 
     setItems(updated)
-    await persistPurchases(updated)
+    const justUpdated = updated.find((x) => x.id === id)
+    if (justUpdated) await upsertPurchase(db, justUpdated)
 
     if (nextStatus === 'approved') {
-      const db = tryGetFirestoreDb()
-      const justUpdated = updated.find((x) => x.id === id)
-      if (db && justUpdated) {
+      if (justUpdated) {
         try {
-          const em = normEmail(justUpdated.requesterEmail) || resolveEmailByNameCompat(justUpdated.requester)
+          const em = await resolveRequesterEmailCompat(justUpdated)
           if (em) {
             await addInAppNotification({
               db,
@@ -430,6 +431,10 @@ export function PurchasesPage() {
     const p = items.find((x) => x.id === id)
     if (!p) return
     if (!canRequestCancel(p, me)) return
+    if (!db) {
+      pushToast('Firebase não configurado. Não foi possível solicitar cancelamento.', 'warning')
+      return
+    }
 
     const ok = window.confirm(
       'Deseja solicitar o cancelamento desta requisição? Administradores, diretores e gerentes serão notificados.',
@@ -443,13 +448,13 @@ export function PurchasesPage() {
         : x,
     )
     setItems(next)
-    await persistPurchases(next)
-
-    const db = tryGetFirestoreDb()
     const updated = next.find((x) => x.id === id)
+    if (updated) await upsertPurchase(db, updated)
+
     if (db && updated) {
       try {
-        const targets = getActiveUsersCompat().filter((u) => ['admin', 'manager', 'boss'].includes(String(u.role)))
+        const users = await loadUsersFromFirestore()
+        const targets = users.filter((u) => u?.active !== false).filter((u) => ['admin', 'manager', 'boss'].includes(String(u.role)))
         if (targets.length) {
           await batchAddInAppNotifications({
             db,
@@ -477,6 +482,10 @@ export function PurchasesPage() {
     if (!canApprove) return
     const p = items.find((x) => x.id === id)
     if (!p || p.cancelRequestStatus !== 'pending') return
+    if (!db) {
+      pushToast('Firebase não configurado. Não foi possível resolver cancelamento.', 'warning')
+      return
+    }
 
     const ok = window.confirm(
       approved
@@ -505,13 +514,12 @@ export function PurchasesPage() {
       }
     })
     setItems(next)
-    await persistPurchases(next)
-
-    const db = tryGetFirestoreDb()
     const updated = next.find((x) => x.id === id)
+    if (updated) await upsertPurchase(db, updated)
+
     if (db && updated) {
       try {
-        const em = normEmail(updated.requesterEmail) || resolveEmailByNameCompat(updated.requester)
+        const em = await resolveRequesterEmailCompat(updated)
         if (em) {
           await addInAppNotification({
             db,

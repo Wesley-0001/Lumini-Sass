@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState } from 'react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Button, Card, FormField, FormRow, Modal, ModalFooter } from '@/components/ui'
 import { useStaffAuth } from '@/app/providers/staffAuthContext'
-import { loadLegacyRuntime } from '@/lib/legacyLoader'
+import { tryGetFirestoreDb } from '@/services/firebase/app'
+import { loadTeams, upsertTeam, deleteTeam, type ProductionTeamDoc } from '@/features/teams/teamsFirestore'
+import { useCareerDashboardData } from '@/features/dashboard/hooks/useCareerDashboardData'
 
-type HrEmployee = {
+type TeamMember = {
   matricula: string
   nome: string
   situacao?: string
@@ -18,38 +20,9 @@ export type ProductionTeam = {
   nome?: string
   lider?: string
   descricao?: string
-  membros?: HrEmployee[]
+  membros?: TeamMember[]
   atualizadoEm?: number
   criadoEm?: number
-}
-
-function getTeamsCompat(): ProductionTeam[] {
-  const w = window as any
-  if (typeof w.getTeams === 'function') return w.getTeams() ?? []
-  if (w._cache?.teams) return w._cache.teams
-  return []
-}
-
-async function persistTeamsCompat(next: ProductionTeam[]): Promise<void> {
-  const w = window as any
-  if (typeof w.persistTeams === 'function') {
-    await w.persistTeams(next)
-    return
-  }
-  if (typeof w.saveTeams === 'function') {
-    await w.saveTeams(next)
-    return
-  }
-  if (!w._cache) w._cache = {}
-  w._cache.teams = next
-}
-
-function getHREmployeesCompat(): HrEmployee[] {
-  const w = window as any
-  if (typeof w.getHREmployees === 'function') return w.getHREmployees() ?? []
-  if (w._cache?.hrEmployees) return w._cache.hrEmployees
-  if (w.HR_EMPLOYEES_SEED) return w.HR_EMPLOYEES_SEED
-  return []
 }
 
 function normalize(s: string): string {
@@ -67,6 +40,7 @@ export function TeamsPage() {
 
   const [ready, setReady] = useState(false)
   const [teams, setTeams] = useState<ProductionTeam[]>([])
+  const empData = useCareerDashboardData()
 
   const [q, setQ] = useState('')
   const [lider, setLider] = useState('')
@@ -82,10 +56,18 @@ export function TeamsPage() {
   useEffect(() => {
     let cancelled = false
     void (async () => {
-      await loadLegacyRuntime()
-      if (cancelled) return
-      setTeams(getTeamsCompat())
-      setReady(true)
+      const db = tryGetFirestoreDb()
+      if (!db) {
+        if (!cancelled) setReady(true)
+        return
+      }
+      try {
+        const loaded = await loadTeams(db)
+        if (cancelled) return
+        setTeams(loaded as ProductionTeam[])
+      } finally {
+        if (!cancelled) setReady(true)
+      }
     })()
     return () => {
       cancelled = true
@@ -93,9 +75,11 @@ export function TeamsPage() {
   }, [])
 
   const leaders = useMemo(() => {
-    const prod = getHREmployeesCompat().filter((e) => e.setor === 'Produção')
-    return [...new Set(prod.map((e) => e.lider).filter(Boolean))].sort((a, b) => String(a).localeCompare(String(b)))
-  }, [ready])
+    const employees = empData.status === 'ready' ? empData.employees : []
+    const prod = employees.filter((e) => (e.sector || '').trim() === 'Produção')
+    const raw = prod.map((e) => (e.supervisor || '').trim()).filter(Boolean)
+    return [...new Set(raw)].sort((a, b) => String(a).localeCompare(String(b)))
+  }, [empData])
 
   const filtered = useMemo(() => {
     const qq = normalize(q)
@@ -114,12 +98,19 @@ export function TeamsPage() {
   }, [teams, q, lider])
 
   const productionActiveEmployees = useMemo(() => {
-    const all = getHREmployeesCompat()
-    return all
-      .filter((e) => e.setor === 'Produção')
-      .filter((e) => e.situacao === 'ATIVO' || e.situacao === 'FÉRIAS' || !e.situacao)
+    const employees = empData.status === 'ready' ? empData.employees : []
+    const prod = employees.filter((e) => (e.sector || '').trim() === 'Produção')
+    const mapped: TeamMember[] = prod.map((e) => ({
+      matricula: (e.rhMatricula || e.id || '').trim(),
+      nome: (e.name || '').trim() || '—',
+      setor: e.sector,
+      cargo: e.currentRole,
+      lider: e.supervisor,
+    }))
+    return mapped
+      .filter((e) => !!e.matricula)
       .sort((a, b) => normalize(a.nome).localeCompare(normalize(b.nome)))
-  }, [ready])
+  }, [empData])
 
   const memberOptions = useMemo(() => {
     const qq = normalize(membersQ)
@@ -166,33 +157,41 @@ export function TeamsPage() {
       .map(([k]) => k)
 
     const membersByMat = new Map(productionActiveEmployees.map((e) => [e.matricula, e]))
-    const membros = selectedMatriculas.map((mat) => membersByMat.get(mat)).filter(Boolean) as HrEmployee[]
+    const membros = selectedMatriculas.map((mat) => membersByMat.get(mat)).filter(Boolean) as TeamMember[]
 
     const now = Date.now()
-    const next: ProductionTeam[] = editingId
-      ? teams.map((t) => (t.id === editingId ? { ...t, nome, lider: ldr, descricao: desc, membros, atualizadoEm: now } : t))
-      : [
-          ...teams,
-          {
-            id: buildId(),
-            nome,
-            lider: ldr,
-            descricao: desc,
-            membros,
-            criadoEm: now,
-            atualizadoEm: now,
-          },
-        ]
+    const db = tryGetFirestoreDb()
+    if (!db) return
 
-    setTeams(next)
-    await persistTeamsCompat(next)
+    let nextTeams: ProductionTeam[] = teams
+    if (editingId) {
+      const updated: ProductionTeam = { id: editingId, nome, lider: ldr, descricao: desc, membros, atualizadoEm: now }
+      await upsertTeam(db, updated as ProductionTeamDoc & { id: string })
+      nextTeams = teams.map((t) => (t.id === editingId ? { ...t, ...updated } : t))
+    } else {
+      const created: ProductionTeam = {
+        id: buildId(),
+        nome,
+        lider: ldr,
+        descricao: desc,
+        membros,
+        criadoEm: now,
+        atualizadoEm: now,
+      }
+      await upsertTeam(db, created as ProductionTeamDoc & { id: string })
+      nextTeams = [...teams, created]
+    }
+
+    setTeams(nextTeams)
     setModalOpen(false)
   }
 
   async function removeTeam(id: string) {
+    const db = tryGetFirestoreDb()
+    if (!db) return
+    await deleteTeam(db, id)
     const next = teams.filter((t) => t.id !== id)
     setTeams(next)
-    await persistTeamsCompat(next)
   }
 
   return (

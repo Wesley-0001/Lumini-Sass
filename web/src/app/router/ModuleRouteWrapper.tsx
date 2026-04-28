@@ -3,6 +3,8 @@ import { RequirePermission } from '@/components/shared/RequirePermission'
 import { ModulePlaceholderPage } from '@/features/system/ModulePlaceholderPage'
 import { UsersPage } from '@/features/users/pages/UsersPage'
 import { PurchasesPage } from '@/features/purchases/pages/PurchasesPage'
+import { TeamsPage } from '@/features/teams/pages/TeamsPage'
+import { CommsPage } from '@/features/comms/pages/CommsPage'
 import { isPermissionModule } from '@/lib/permissionModule'
 import { LegacyBridgePage } from '@/features/system/LegacyBridgePage'
 
@@ -16,25 +18,6 @@ export function ModuleRouteWrapper() {
   // Mapeamento pragmático: cada rota React chama o renderer legado correspondente.
   const legacy = (() => {
     switch (moduleId) {
-      case 'teams':
-        return (
-          <LegacyBridgePage
-            containerId="page-admin-teams"
-            render={({ role }) => {
-              if (role === 'boss') return window._teamsRenderBoss?.()
-              if (role === 'admin') return window._teamsRenderAdmin?.()
-              if (role === 'manager') return window._teamsRenderManager?.()
-              return window._teamsRenderSup?.()
-            }}
-          />
-        )
-      case 'comms':
-        return (
-          <LegacyBridgePage
-            containerId="page-comms"
-            render={() => window._commsRenderPage?.()}
-          />
-        )
       case 'rh':
         return (
           <LegacyBridgePage
@@ -95,7 +78,11 @@ export function ModuleRouteWrapper() {
 
   return (
     <RequirePermission module={moduleId}>
-      {moduleId === 'purchases' ? (
+      {moduleId === 'teams' ? (
+        <TeamsPage />
+      ) : moduleId === 'comms' ? (
+        <CommsPage />
+      ) : moduleId === 'purchases' ? (
         <PurchasesPage />
       ) : moduleId === 'users' ? (
         <UsersPage />
