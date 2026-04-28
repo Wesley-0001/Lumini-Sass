@@ -15,13 +15,6 @@ export function ModuleRouteWrapper() {
   // Mapeamento pragmático: cada rota React chama o renderer legado correspondente.
   const legacy = (() => {
     switch (moduleId) {
-      case 'users':
-        return (
-          <LegacyBridgePage
-            containerId="page-admin-users"
-            render={() => window._usersRenderPage?.()}
-          />
-        )
       case 'teams':
         return (
           <LegacyBridgePage

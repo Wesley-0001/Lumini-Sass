@@ -10,7 +10,6 @@ declare global {
     renderSupervisorHome?: () => void
     renderRHDashboard?: (targetIdParam?: string) => void
 
-    _usersRenderPage?: () => void
     _teamsRenderAdmin?: () => void
     _teamsRenderBoss?: () => void
     _teamsRenderSupervisor?: () => void
@@ -68,7 +67,6 @@ function globalEval(code: string, label: string): void {
 import dataJs from '../../../js/data.js?raw'
 import permissionsJs from '../../../js/permissions.js?raw'
 import notificationsModuleJs from '../../../js/notifications-module.js?raw'
-import usersModuleJs from '../../../js/users-module.js?raw'
 import teamsModuleJs from '../../../js/teams-module.js?raw'
 import purchasesModuleJs from '../../../js/purchases-module.js?raw'
 import commsModuleJs from '../../../js/comms-module.js?raw'
@@ -113,31 +111,28 @@ export function loadLegacyRuntime(): Promise<void> {
     // 5) notifications-module.js
     globalEval(notificationsModuleJs, 'legacy:notifications-module.js')
 
-    // 6) users-module.js
-    globalEval(usersModuleJs, 'legacy:users-module.js')
-
-    // 7) teams-module.js
+    // 6) teams-module.js
     globalEval(teamsModuleJs, 'legacy:teams-module.js')
 
-    // 8) purchases-module.js
+    // 7) purchases-module.js
     globalEval(purchasesModuleJs, 'legacy:purchases-module.js')
 
-    // 9) comms-module.js
+    // 8) comms-module.js
     globalEval(commsModuleJs, 'legacy:comms-module.js')
 
-    // 10) rh-data.js
+    // 9) rh-data.js
     globalEval(rhDataJs, 'legacy:rh-data.js')
 
-    // 11) rh-module.js
+    // 10) rh-module.js
     globalEval(rhModuleJs, 'legacy:rh-module.js')
 
-    // 12) rh-holerites-module.js
+    // 11) rh-holerites-module.js
     globalEval(rhHoleritesModuleJs, 'legacy:rh-holerites-module.js')
 
-    // 13) daily-attendance-module.js
+    // 12) daily-attendance-module.js
     globalEval(dailyAttendanceModuleJs, 'legacy:daily-attendance-module.js')
 
-    // 14) app.js
+    // 13) app.js
     globalEval(appJs, 'legacy:app.js')
   })()
 
