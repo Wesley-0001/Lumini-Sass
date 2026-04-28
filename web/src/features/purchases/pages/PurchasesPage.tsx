@@ -4,6 +4,8 @@ import { Button, Card, FormField, FormRow, Modal, ModalFooter } from '@/componen
 import { useStaffAuth } from '@/app/providers/staffAuthContext'
 import { loadLegacyRuntime } from '@/lib/legacyLoader'
 import { useToast } from '@/components/ui/toast/toastContext'
+import { tryGetFirestoreDb } from '@/services/firebase/app'
+import { addInAppNotification, batchAddInAppNotifications } from '@/features/notifications/notificationsApi'
 
 type PurchaseStatus = 'pending' | 'approved' | 'purchased' | 'delivered' | 'cancelled'
 
@@ -54,6 +56,28 @@ const STATUS_META: Record<PurchaseStatus, { label: string; cls: string; icon: st
 
 function normalize(s: string): string {
   return s.trim().toLowerCase()
+}
+
+function normEmail(v: unknown): string {
+  return String(v ?? '')
+    .trim()
+    .toLowerCase()
+}
+
+function getActiveUsersCompat(): Array<{ email: string; name?: string; role?: string; active?: boolean }> {
+  const arr = (window as any)?._cache?.users
+  const users = Array.isArray(arr) ? arr : []
+  return users.filter((u: any) => u?.active !== false)
+}
+
+function resolveEmailByNameCompat(name: unknown): string {
+  const n = String(name ?? '')
+    .trim()
+    .toLowerCase()
+  if (!n) return ''
+  const users = getActiveUsersCompat()
+  const u = users.find((x) => String(x?.name ?? '').trim().toLowerCase() === n)
+  return u?.email ? normEmail(u.email) : ''
 }
 
 function fmtCurrency(v: unknown): string {
@@ -372,11 +396,27 @@ export function PurchasesPage() {
     await persistPurchases(updated)
 
     if (nextStatus === 'approved') {
-      const w = window as any
+      const db = tryGetFirestoreDb()
       const justUpdated = updated.find((x) => x.id === id)
-      if (justUpdated && typeof w._ntNotifyPurchaseApproved === 'function') {
+      if (db && justUpdated) {
         try {
-          w._ntNotifyPurchaseApproved(justUpdated)
+          const em = normEmail(justUpdated.requesterEmail) || resolveEmailByNameCompat(justUpdated.requester)
+          if (em) {
+            await addInAppNotification({
+              db,
+              notification: {
+                userEmail: em,
+                userId: null,
+                type: 'purchase_approved',
+                title: 'Sua solicitação de compra foi aprovada',
+                message: `Item: “${String(justUpdated.title || '—').slice(0, 80)}”.`,
+                link: 'purchases',
+                read: false,
+                createdAt: Date.now(),
+                meta: { purchaseId: justUpdated.id },
+              },
+            })
+          }
         } catch {
           // ignore
         }
@@ -405,11 +445,27 @@ export function PurchasesPage() {
     setItems(next)
     await persistPurchases(next)
 
-    const w = window as any
+    const db = tryGetFirestoreDb()
     const updated = next.find((x) => x.id === id)
-    if (updated && typeof w._ntNotifyPurchaseCancelRequested === 'function') {
+    if (db && updated) {
       try {
-        w._ntNotifyPurchaseCancelRequested(updated)
+        const targets = getActiveUsersCompat().filter((u) => ['admin', 'manager', 'boss'].includes(String(u.role)))
+        if (targets.length) {
+          await batchAddInAppNotifications({
+            db,
+            notifications: targets.map((u) => ({
+              userEmail: normEmail(u.email),
+              userId: null,
+              type: 'purchase_cancel_request',
+              title: 'Nova solicitação de cancelamento',
+              message: `${updated.requester || 'Solicitante'} pediu cancelamento da compra “${String(updated.title || '').slice(0, 72)}”. Confira em Compras.`,
+              link: 'purchases',
+              read: false,
+              createdAt: Date.now(),
+              meta: { purchaseId: updated.id },
+            })),
+          })
+        }
       } catch {
         // ignore
       }
@@ -451,11 +507,29 @@ export function PurchasesPage() {
     setItems(next)
     await persistPurchases(next)
 
-    const w = window as any
+    const db = tryGetFirestoreDb()
     const updated = next.find((x) => x.id === id)
-    if (updated && typeof w._ntNotifyPurchaseCancelResolved === 'function') {
+    if (db && updated) {
       try {
-        w._ntNotifyPurchaseCancelResolved(updated, approved)
+        const em = normEmail(updated.requesterEmail) || resolveEmailByNameCompat(updated.requester)
+        if (em) {
+          await addInAppNotification({
+            db,
+            notification: {
+              userEmail: em,
+              userId: null,
+              type: approved ? 'purchase_cancel_ok' : 'purchase_cancel_denied',
+              title: approved ? 'Sua solicitação de cancelamento foi aprovada' : 'Sua solicitação de cancelamento foi recusada',
+              message: approved
+                ? `A compra “${String(updated.title || '').slice(0, 80)}” foi cancelada.`
+                : `A compra “${String(updated.title || '').slice(0, 80)}” permanece ativa.`,
+              link: 'purchases',
+              read: false,
+              createdAt: Date.now(),
+              meta: { purchaseId: updated.id },
+            },
+          })
+        }
       } catch {
         // ignore
       }

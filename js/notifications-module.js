@@ -282,8 +282,15 @@
     if (n.link && window.navigateTo) {
       window.navigateTo(n.link);
       const meta = n.meta || {};
-      if (n.type === 'comms' && meta.commId && window._commsOpenItem) {
-        setTimeout(() => window._commsOpenItem(meta.commId), 350);
+      if (n.type === 'comms' && meta.commId) {
+        // Compat: o módulo de Comms pode estar em React (sem window._comms*).
+        // Mantém fallback para legado quando existir.
+        try {
+          window.dispatchEvent(new CustomEvent('nt:comms:open', { detail: { commId: meta.commId } }));
+        } catch (_) {}
+        if (window._commsOpenItem) {
+          setTimeout(() => window._commsOpenItem(meta.commId), 350);
+        }
       }
     }
     closePanel();

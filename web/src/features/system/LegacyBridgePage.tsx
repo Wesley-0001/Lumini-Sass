@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useStaffAuth } from '@/app/providers/staffAuthContext'
 import { loadLegacyRuntime } from '@/lib/legacyLoader'
+import { useNotifications } from '@/features/notifications/NotificationsProvider'
 
 type LegacyBridgeProps = {
   /** ID do container que o legado espera manipular. */
@@ -128,6 +129,7 @@ export function LegacyBridgePage({ containerId, render, template }: LegacyBridge
   const { user } = useStaffAuth()
   const [ready, setReady] = useState(false)
   const cleanupRef = useRef<(() => void) | null>(null)
+  const { closePanel } = useNotifications()
 
   const role = user?.role ?? 'supervisor'
 
@@ -153,7 +155,7 @@ export function LegacyBridgePage({ containerId, render, template }: LegacyBridge
         const el = document.getElementById(containerId)
         if (el) el.innerHTML = ''
         // fecha painéis flutuantes do legado (ex.: notificações) para evitar "sobras"
-        window._ntClosePanel?.()
+        closePanel()
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

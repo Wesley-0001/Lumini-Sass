@@ -11,7 +11,7 @@ const LEGACY_HINTS: Partial<Record<PermissionModule, string>> = {
   teams: 'js/teams-module.js',
   careers: 'Trilhas em js/data.js + telas admin-careers no index.html',
   evaluations: 'js/app.js (renderers de avaliação)',
-  purchases: 'js/purchases-module.js',
+  purchases: 'Migrado para React (sem purchases-module.js no runtime React)',
   users: 'js/users-module.js',
   comms: 'js/comms-module.js',
   matrix: 'js/app.js (matriz)',

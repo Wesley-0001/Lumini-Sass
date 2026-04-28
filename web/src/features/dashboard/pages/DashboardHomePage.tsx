@@ -10,6 +10,7 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { Card } from '@/components/ui'
 import { AdminDashboardLegacy } from '@/features/dashboard/components/AdminDashboardLegacy'
 import styles from '@/features/dashboard/pages/DashboardHomePage.module.css'
+import { useNotifications } from '@/features/notifications/NotificationsProvider'
 
 type LegacyDashboardRole = 'admin' | 'boss' | 'supervisor' | 'manager' | 'rh'
 
@@ -201,6 +202,7 @@ function LegacyDashboardBridge({ role }: { role: LegacyDashboardRole }) {
   const containerId = useMemo(() => `legacy-dashboard-${role}`, [role])
   const [active, setActive] = useState(false)
   const cleanupRef = useRef<(() => void) | null>(null)
+  const { closePanel } = useNotifications()
 
   const templateHtml = useMemo(() => {
     if (role === 'rh') return ''
@@ -250,7 +252,7 @@ function LegacyDashboardBridge({ role }: { role: LegacyDashboardRole }) {
         cleanupRef.current = null
         const el = document.getElementById(containerId)
         if (el) el.innerHTML = ''
-        window._ntClosePanel?.()
+        closePanel()
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -4,6 +4,7 @@ import { ALL_MODULES } from '@/lib/permissions'
 import { staffRoleLabel } from '@/lib/roleUi'
 import type { StaffSessionUser } from '@/types/user'
 import styles from '@/components/layout/AppHeader.module.css'
+import { NotificationBell } from '@/features/notifications/NotificationBell'
 
 const LOGO = '/images/logo-white.png'
 
@@ -90,10 +91,7 @@ export function AppHeader({
             </span>
           </label>
         </div>
-        <button type="button" className={styles.notifBtn} title="Notificações">
-          <i className="fas fa-bell" aria-hidden />
-          <span className={styles.badgeCount}>0</span>
-        </button>
+        <NotificationBell />
         <div className={styles.rel} ref={wrapRef}>
           <button
             type="button"

@@ -418,6 +418,9 @@ function listenRealtime() {
     if (!window._dbReady) return;
     window._cache.internalComms = snap.docs.map(d => ({ ...d.data(), id: d.id }));
     console.log('[Comms DEBUG] snapshot internal_comms:', window._cache.internalComms.length, 'docs');
+    // Compat: módulo Comms pode estar em React (sem window._comms*).
+    // Mantém o legado quando existir e também emite evento para React.
+    try { window.dispatchEvent(new Event('nt:comms:refresh')); } catch (_) {}
     if (window.currentPage === 'comms' && window._commsRender) window._commsRender();
   }, err => console.warn('[internal_comms]', err && err.message ? err.message : err));
 }

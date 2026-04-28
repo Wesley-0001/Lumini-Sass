@@ -2,12 +2,15 @@ import type { ReactNode } from 'react'
 import { PermissionsProvider } from '@/app/providers/PermissionsProvider'
 import { StaffAuthProvider } from '@/app/providers/StaffAuthProvider'
 import { ToastProvider } from '@/components/ui/toast/ToastProvider'
+import { NotificationsProvider } from '@/features/notifications/NotificationsProvider'
 
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
     <StaffAuthProvider>
       <PermissionsProvider>
-        <ToastProvider>{children}</ToastProvider>
+        <ToastProvider>
+          <NotificationsProvider>{children}</NotificationsProvider>
+        </ToastProvider>
       </PermissionsProvider>
     </StaffAuthProvider>
   )
