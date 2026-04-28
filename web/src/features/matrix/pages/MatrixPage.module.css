@@ -1,0 +1,38 @@
+/* MatrixPage.module.css */
+.page { display: flex; flex-direction: column; gap: 1.5rem; padding: 1.5rem; }
+.loadWrap { display: flex; align-items: center; justify-content: center; gap: 1rem; height: 200px; color: #6b7280; }
+.spinner { width: 28px; height: 28px; border: 3px solid #e5e7eb; border-top-color: #4361ee; border-radius: 50%; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.legendCard { padding: 0.875rem 1.25rem !important; }
+.legendRow { display: flex; align-items: center; flex-wrap: wrap; gap: 1rem; }
+.legendItem { display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; color: #374151; }
+.editHint { margin-left: auto; font-size: 0.75rem; color: #9ca3af; }
+
+.filters { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+.searchInput { flex: 1; min-width: 200px; padding: 0.4rem 0.8rem; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 0.875rem; }
+.select { padding: 0.4rem 0.8rem; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 0.875rem; background: #fff; cursor: pointer; }
+
+.matrixCard { padding: 0 !important; overflow: hidden; }
+.tableWrap { overflow-x: auto; }
+.matrix { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.nameCol { min-width: 180px; padding: 8px 12px; background: #f9fafb; border-bottom: 2px solid #e5e7eb; text-align: left; color: #6b7280; font-weight: 600; position: sticky; left: 0; z-index: 2; }
+.skillCol { min-width: 90px; padding: 6px 8px; background: #f9fafb; border-bottom: 2px solid #e5e7eb; text-align: center; border-left: 1px solid #f3f4f6; }
+.skillHeader { display: block; font-size: 0.72rem; font-weight: 600; color: #6b7280; writing-mode: vertical-rl; transform: rotate(180deg); height: 72px; white-space: nowrap; padding: 4px 0; }
+
+.empCell { padding: 8px 12px; border-bottom: 1px solid #f3f4f6; background: #fff; position: sticky; left: 0; z-index: 1; }
+.empName { font-weight: 600; color: #1f2937; }
+.empRole { font-size: 0.72rem; color: #9ca3af; margin-top: 1px; }
+.skillCell { padding: 6px 8px; border-bottom: 1px solid #f3f4f6; border-left: 1px solid #f3f4f6; text-align: center; }
+.clickable { cursor: pointer; transition: background 0.15s; }
+.clickable:hover { background: #f0f9ff; }
+
+/* Dots */
+.dot { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; font-size: 0.75rem; font-weight: 700; }
+.dotNone   { background: #f3f4f6; color: #9ca3af; }
+.dotRed    { background: #fee2e2; color: #dc2626; }
+.dotYellow { background: #fef9c3; color: #92400e; }
+.dotGreen  { background: #dcfce7; color: #15803d; }
+.dotStar   { background: #fde68a; color: #92400e; font-size: 1rem; }
+
+.emptyCard { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem; padding: 3rem !important; text-align: center; color: #9ca3af; }

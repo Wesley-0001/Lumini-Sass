@@ -5,8 +5,13 @@ import { UsersPage } from '@/features/users/pages/UsersPage'
 import { PurchasesPage } from '@/features/purchases/pages/PurchasesPage'
 import { TeamsPage } from '@/features/teams/pages/TeamsPage'
 import { CommsPage } from '@/features/comms/pages/CommsPage'
+import { RhDashboardPage } from '@/features/rh/pages/RhDashboardPage'
+import { TurnoverPage } from '@/features/rh/pages/TurnoverPage'
+import { CareersPage } from '@/features/careers/pages/CareersPage'
+import { EvaluationsPage } from '@/features/evaluations/pages/EvaluationsPage'
+import { MatrixPage } from '@/features/matrix/pages/MatrixPage'
+import { ReportsPage } from '@/features/reports/pages/ReportsPage'
 import { isPermissionModule } from '@/lib/permissionModule'
-import { LegacyBridgePage } from '@/features/system/LegacyBridgePage'
 
 export function ModuleRouteWrapper() {
   const { moduleId } = useParams()
@@ -15,80 +20,25 @@ export function ModuleRouteWrapper() {
     return <Navigate to="/app/dashboard" replace />
   }
 
-  // Mapeamento pragmático: cada rota React chama o renderer legado correspondente.
-  const legacy = (() => {
+  function resolveModule() {
     switch (moduleId) {
-      case 'rh':
-        return (
-          <LegacyBridgePage
-            containerId="page-rh-dashboard"
-            render={({ role }) => {
-              const readOnly = role === 'boss'
-              // usa o modo "In" para não depender do HTML legado completo
-              return window._rhRenderDashboardIn?.('page-rh-dashboard', readOnly) ?? window._rhRenderDashboard?.()
-            }}
-          />
-        )
-      case 'turnover':
-        return (
-          <LegacyBridgePage
-            containerId="page-rh-turnover"
-            render={({ role }) => {
-              const readOnly = role === 'boss'
-              return window._rhRenderTurnoverIn?.('page-rh-turnover', readOnly) ?? window._rhRenderTurnover?.()
-            }}
-          />
-        )
-      case 'careers':
-        return (
-          <LegacyBridgePage
-            containerId="legacy-careers"
-            template="admin-careers"
-            render={() => (window as any).renderCareers?.()}
-          />
-        )
-      case 'evaluations':
-        return (
-          <LegacyBridgePage
-            containerId="legacy-evaluations"
-            template="admin-evaluations"
-            render={() => (window as any).renderEvaluationsList?.()}
-          />
-        )
-      case 'matrix':
-        return (
-          <LegacyBridgePage
-            containerId="legacy-matrix"
-            template="admin-matrix"
-            render={() => (window as any).renderMatrix?.()}
-          />
-        )
-      case 'reports':
-        return (
-          <LegacyBridgePage
-            containerId="legacy-reports"
-            template="admin-reports"
-            render={() => (window as any).renderReports?.()}
-          />
-        )
-      default:
-        return null
+      case 'teams':       return <TeamsPage />
+      case 'comms':       return <CommsPage />
+      case 'purchases':   return <PurchasesPage />
+      case 'users':       return <UsersPage />
+      case 'rh':          return <RhDashboardPage />
+      case 'turnover':    return <TurnoverPage />
+      case 'careers':     return <CareersPage />
+      case 'evaluations': return <EvaluationsPage />
+      case 'matrix':      return <MatrixPage />
+      case 'reports':     return <ReportsPage />
+      default:            return <ModulePlaceholderPage />
     }
-  })()
+  }
 
   return (
     <RequirePermission module={moduleId}>
-      {moduleId === 'teams' ? (
-        <TeamsPage />
-      ) : moduleId === 'comms' ? (
-        <CommsPage />
-      ) : moduleId === 'purchases' ? (
-        <PurchasesPage />
-      ) : moduleId === 'users' ? (
-        <UsersPage />
-      ) : (
-        legacy ?? <ModulePlaceholderPage />
-      )}
+      {resolveModule()}
     </RequirePermission>
   )
 }
