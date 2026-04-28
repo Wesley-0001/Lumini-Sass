@@ -3,12 +3,13 @@ import { collection, getDocs, type DocumentData, type QueryDocumentSnapshot } fr
 import { tryGetFirestoreDb } from '@/services/firebase/app'
 import { FirestoreCollections } from '@/types/firestore'
 import type { CareerEmployee } from '@/lib/dashboard/careerKpi'
+import type { CareerEvaluation } from '@/lib/dashboard/careerEvaluation'
 
 export type CareerDashboardState =
   | { status: 'no_firebase' }
   | { status: 'loading' }
   | { status: 'error'; message: string }
-  | { status: 'ready'; employees: CareerEmployee[]; evaluationsCount: number }
+  | { status: 'ready'; employees: CareerEmployee[]; evaluations: CareerEvaluation[]; evaluationsCount: number }
 
 const initial: CareerDashboardState = { status: 'loading' }
 
@@ -59,16 +60,28 @@ export function useCareerDashboardData() {
         if (cancelled) return
         const employees = mapEmployeeDocs(empSnap.docs)
 
-        let evaluationsCount = 0
+        let evaluations: CareerEvaluation[] = []
         try {
           const evSnap = await getDocs(collection(db, FirestoreCollections.evaluations))
-          if (!cancelled) evaluationsCount = evSnap.size
+          if (!cancelled)
+            evaluations = evSnap.docs.map((d) => {
+              const raw = d.data() as Record<string, unknown>
+              return {
+                id: d.id,
+                employeeId: typeof raw.employeeId === 'string' ? raw.employeeId : undefined,
+                result: typeof raw.result === 'string' ? raw.result : undefined,
+                date: typeof raw.date === 'string' ? raw.date : undefined,
+                fromRole: typeof raw.fromRole === 'string' ? raw.fromRole : undefined,
+                toRole: typeof raw.toRole === 'string' ? raw.toRole : undefined,
+              }
+            })
         } catch {
-          /* coleção opcional para KPI de boss */
+          /* coleção opcional para KPI de boss / histórico admin */
         }
 
         if (cancelled) return
-        setState({ status: 'ready', employees, evaluationsCount })
+        const evaluationsCount = evaluations.length
+        setState({ status: 'ready', employees, evaluations, evaluationsCount })
       } catch (e) {
         const message = e instanceof Error ? e.message : 'Falha ao carregar dados.'
         if (!cancelled) setState({ status: 'error', message })

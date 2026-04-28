@@ -101,6 +101,16 @@ export function mergeRolePermissions(
   return { ...base, ...saved }
 }
 
+/** Espelho de `saveUserPermissions` em `js/permissions.js` (localStorage + notificação para UI). */
+export function saveUserPermissions(email: string, perms: Record<PermissionModule, boolean>): void {
+  try {
+    localStorage.setItem(`${PERMS_STORAGE_PREFIX}${email}`, JSON.stringify(perms))
+    window.dispatchEvent(new Event('lumini-perms-changed'))
+  } catch (e) {
+    console.error('Erro ao salvar permissões:', e)
+  }
+}
+
 export function hasModuleAccess(
   user: { role: StaffRole; email: string } | null,
   module: PermissionModule,
