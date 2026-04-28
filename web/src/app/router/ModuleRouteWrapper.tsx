@@ -2,6 +2,7 @@ import { Navigate, useParams } from 'react-router-dom'
 import { RequirePermission } from '@/components/shared/RequirePermission'
 import { ModulePlaceholderPage } from '@/features/system/ModulePlaceholderPage'
 import { UsersPage } from '@/features/users/pages/UsersPage'
+import { PurchasesPage } from '@/features/purchases/pages/PurchasesPage'
 import { isPermissionModule } from '@/lib/permissionModule'
 import { LegacyBridgePage } from '@/features/system/LegacyBridgePage'
 
@@ -25,13 +26,6 @@ export function ModuleRouteWrapper() {
               if (role === 'manager') return window._teamsRenderManager?.()
               return window._teamsRenderSup?.()
             }}
-          />
-        )
-      case 'purchases':
-        return (
-          <LegacyBridgePage
-            containerId="page-purchases"
-            render={() => window._purchRenderPage?.()}
           />
         )
       case 'comms':
@@ -101,7 +95,13 @@ export function ModuleRouteWrapper() {
 
   return (
     <RequirePermission module={moduleId}>
-      {legacy ?? (moduleId === 'users' ? <UsersPage /> : <ModulePlaceholderPage />)}
+      {moduleId === 'purchases' ? (
+        <PurchasesPage />
+      ) : moduleId === 'users' ? (
+        <UsersPage />
+      ) : (
+        legacy ?? <ModulePlaceholderPage />
+      )}
     </RequirePermission>
   )
 }
