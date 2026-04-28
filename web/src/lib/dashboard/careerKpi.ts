@@ -9,6 +9,8 @@ export interface CareerEmployee {
   admission?: string
   status?: string
   minMonths?: number | null
+  /** Nome do líder no documento (campo usado no legado). */
+  rhLider?: string
   supervisor?: string
   currentRole?: string
   desiredRole?: string | null

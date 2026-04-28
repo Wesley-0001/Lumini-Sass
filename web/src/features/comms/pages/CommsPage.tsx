@@ -2,12 +2,12 @@ import { useEffect, useMemo, useState } from 'react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Button, Card, FormField, FormRow, Modal, ModalFooter } from '@/components/ui'
 import { useStaffAuth } from '@/app/providers/staffAuthContext'
-import { loadLegacyRuntime } from '@/lib/legacyLoader'
 import { useToast } from '@/components/ui/toast/toastContext'
-import { doc, setDoc } from 'firebase/firestore'
 import { tryGetFirestoreDb } from '@/services/firebase/app'
-import { FirestoreCollections } from '@/types/firestore'
 import { batchAddInAppNotifications } from '@/features/notifications/notificationsApi'
+import { useStaffUsers } from '@/features/users/useStaffUsers'
+import { loadTeams, type ProductionTeamDoc } from '@/features/teams/teamsFirestore'
+import { loadInternalComms, upsertInternalComm } from '@/features/comms/commsFirestore'
 
 type PriorityKey = 'alta' | 'media' | 'baixa'
 type DestinationType = 'all' | 'role' | 'team' | 'user'
@@ -55,20 +55,10 @@ function normEmail(v: unknown): string {
     .toLowerCase()
 }
 
-function getActiveUsersCompat(): Array<{ email: string; name?: string; role?: string; active?: boolean }> {
-  const arr = (window as any)?._cache?.users
-  const users = Array.isArray(arr) ? arr : []
-  return users.filter((u: any) => u?.active !== false)
-}
-
-function resolveAuthorNameByEmail(email: string): string {
-  const em = normEmail(email)
-  if (!em) return 'Autor'
-  const u = getActiveUsersCompat().find((x) => normEmail(x.email) === em)
-  return u?.name ? String(u.name) : em
-}
-
-function commDestinationLabelCompat(item: InternalComm): string {
+function commDestinationLabel(
+  item: InternalComm,
+  opts: { users: Array<{ email: string; name?: string; role?: string; active?: boolean }>; teams: Array<ProductionTeamDoc & { id: string }> },
+): string {
   const dest = item.destinationType || 'all'
   const r = item.recipients || ({} as any)
   const roleLabels: Record<string, string> = {
@@ -92,10 +82,8 @@ function commDestinationLabelCompat(item: InternalComm): string {
   }
   if (dest === 'team') {
     const teamIds = Array.isArray((r as any).teams) ? (r as any).teams : []
-    const teamsArr = (window as any)?._cache?.teams
-    const teams = Array.isArray(teamsArr) ? teamsArr : []
     const names = teamIds
-      .map((tid: any) => teams.find((t: any) => String(t?.id) === String(tid))?.name || teams.find((t: any) => String(t?.id) === String(tid))?.nome)
+      .map((tid: any) => (opts.teams.find((t: any) => String(t?.id) === String(tid)) as any)?.nome || String(tid))
       .filter(Boolean)
       .map(String)
     return names.length ? names.join(', ') : 'Equipes selecionadas'
@@ -103,10 +91,16 @@ function commDestinationLabelCompat(item: InternalComm): string {
   return 'Destinatários'
 }
 
-function expandCommsRecipientEmailsCompat(item: InternalComm): string[] {
+function expandCommsRecipientEmails(
+  item: InternalComm,
+  opts: {
+    users: Array<{ email: string; name?: string; role?: string; active?: boolean; employeeId?: string }>
+    teams: Array<ProductionTeamDoc & { id: string }>
+  },
+): string[] {
   const author = normEmail(item.authorEmail)
   const out = new Set<string>()
-  const users = getActiveUsersCompat()
+  const users = opts.users.filter((u) => u?.active !== false)
   const dest = item.destinationType || 'all'
   const r = item.recipients || ({} as any)
 
@@ -131,14 +125,20 @@ function expandCommsRecipientEmailsCompat(item: InternalComm): string[] {
     })
   } else if (dest === 'team') {
     const teamIds = Array.isArray((r as any).teams) ? (r as any).teams : []
-    const teamsArr = (window as any)?._cache?.teams
-    const teams = Array.isArray(teamsArr) ? teamsArr : []
     teamIds.forEach((tid: any) => {
-      const tm = teams.find((t: any) => String(t?.id) === String(tid))
+      const tm = opts.teams.find((t: any) => String(t?.id) === String(tid))
       const membros = (tm as any)?.membros
       if (!Array.isArray(membros)) return
       membros.forEach((m: any) => {
-        const em = normEmail(m?.email)
+        const direct = normEmail(m?.email)
+        if (direct && direct !== author) {
+          out.add(direct)
+          return
+        }
+        const mat = String(m?.matricula || '').trim()
+        if (!mat) return
+        const u = users.find((x) => String(x.employeeId || '').trim() === mat)
+        const em = u ? normEmail(u.email) : ''
         if (em && em !== author) out.add(em)
       })
     })
@@ -246,15 +246,8 @@ function loadFromLocalStorageOnly(): InternalComm[] {
   return []
 }
 
-function getCacheInternalComms(): InternalComm[] {
-  const w = window as any
-  const arr = w?._cache?.internalComms
-  return Array.isArray(arr) ? (arr as InternalComm[]) : []
-}
-
-function loadAllMerged(): InternalComm[] {
+function loadAllMerged(fromCloud: InternalComm[]): InternalComm[] {
   const fromLocal = loadFromLocalStorageOnly()
-  const fromCloud = getCacheInternalComms()
   if (!fromCloud.length) return fromLocal
 
   const byId = new Map<string, InternalComm>()
@@ -331,17 +324,13 @@ function recipientLabel(c: InternalComm): string {
   if (t === 'team') {
     const teams = Array.isArray(r.teams) ? r.teams : []
     if (!teams.length) return 'Equipes (não definido)'
-    const allTeams = (window as any)?._cache?.teams
-    const arr = Array.isArray(allTeams) ? allTeams : []
-    const names = teams.map((id: string) => arr.find((t2: any) => t2.id === id)?.nome || arr.find((t2: any) => t2.id === id)?.lider || id)
+    const names = teams.map((id: string) => id)
     return names.join(', ')
   }
   if (t === 'user') {
     const users = Array.isArray(r.users) ? r.users : []
     if (!users.length) return 'Usuários (não definido)'
-    const allUsers = (window as any)?._cache?.users
-    const arr = Array.isArray(allUsers) ? allUsers : []
-    const names = users.map((email: string) => arr.find((u: any) => u.email === email)?.name || email)
+    const names = users.map((email: string) => email)
     return names.join(', ')
   }
   return '—'
@@ -352,19 +341,20 @@ type FilterChip = 'all' | 'unread' | 'high' | 'mine'
 export function CommsPage() {
   const { user } = useStaffAuth()
   const { pushToast } = useToast()
+  const staffUsers = useStaffUsers()
 
   const me = useMemo(() => {
-    const w = window as any
-    const fallback = w?.currentUser
     return {
-      email: String(user?.email ?? fallback?.email ?? ''),
-      role: String(user?.role ?? fallback?.role ?? 'supervisor'),
-      name: String(user?.name ?? fallback?.name ?? ''),
+      email: String(user?.email ?? ''),
+      role: String(user?.role ?? 'supervisor'),
+      name: String(user?.name ?? ''),
     }
   }, [user])
 
   const [ready, setReady] = useState(false)
   const [items, setItems] = useState<InternalComm[]>([])
+  const [cloudItems, setCloudItems] = useState<InternalComm[]>([])
+  const [teams, setTeams] = useState<Array<ProductionTeamDoc & { id: string }>>([])
   const [search, setSearch] = useState('')
   const [chip, setChip] = useState<FilterChip>('all')
 
@@ -381,22 +371,61 @@ export function CommsPage() {
   const [draftUsers, setDraftUsers] = useState<Record<string, boolean>>({})
   const [userQ, setUserQ] = useState('')
 
+  const activeUsers = useMemo(() => {
+    return (staffUsers.users || []).filter((u) => u?.active !== false)
+  }, [staffUsers.users])
+
   const sortedVisible = useMemo(() => {
-    const base = loadAllMerged()
+    const base = loadAllMerged(cloudItems)
     const visible = isAdminView(me.role) ? base : base.filter((c) => isVisibleToCurrentUser(c, me))
     return visible.slice().sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0))
-  }, [me.email, me.role, me.name, ready])
+  }, [me.email, me.role, me.name, cloudItems])
 
   useEffect(() => {
     let cancelled = false
-    void (async () => {
-      await loadLegacyRuntime()
-      if (cancelled) return
+    const db = tryGetFirestoreDb()
+    if (!db) {
       setReady(true)
-      setItems(loadAllMerged())
-    })()
+      setCloudItems([])
+      setItems(loadAllMerged([]))
+    } else {
+      void (async () => {
+        try {
+          const [comms, loadedTeams] = await Promise.all([loadInternalComms(db), loadTeams(db)])
+          if (cancelled) return
+          setCloudItems(comms)
+          setTeams(loadedTeams)
+          setReady(true)
+          setItems(loadAllMerged(comms))
+        } catch {
+          if (cancelled) return
+          setCloudItems([])
+          setTeams([])
+          setReady(true)
+          setItems(loadAllMerged([]))
+        }
+      })()
+    }
 
-    const onRefresh = () => setItems(loadAllMerged())
+    const reloadFromFirestore = () => {
+      const db2 = tryGetFirestoreDb()
+      if (!db2) {
+        setCloudItems([])
+        setItems(loadAllMerged([]))
+        return
+      }
+      void (async () => {
+        try {
+          const comms = await loadInternalComms(db2)
+          setCloudItems(comms)
+          setItems(loadAllMerged(comms))
+        } catch {
+          // ignore
+        }
+      })()
+    }
+
+    const onRefresh = () => reloadFromFirestore()
     window.addEventListener('nt:comms:refresh', onRefresh as EventListener)
     window.addEventListener('storage', onRefresh)
 
@@ -442,7 +471,7 @@ export function CommsPage() {
 
   const viewed = useMemo(() => {
     if (!viewId) return null
-    return loadAllMerged().find((x) => x.id === viewId) ?? null
+    return loadAllMerged(cloudItems).find((x) => x.id === viewId) ?? null
   }, [viewId, items])
 
   async function markAsRead(id: string) {
@@ -450,7 +479,7 @@ export function CommsPage() {
     if (isAdminView(me.role)) return
     if (!me.email) return
 
-    const all = loadAllMerged()
+    const all = loadAllMerged(cloudItems)
     const idx = all.findIndex((x) => x.id === id)
     if (idx < 0) return
     const c = all[idx]
@@ -465,8 +494,7 @@ export function CommsPage() {
     const db = tryGetFirestoreDb()
     if (db && next?.id) {
       try {
-        const clean = JSON.parse(JSON.stringify(next))
-        await setDoc(doc(db, FirestoreCollections.internalComms, String(next.id)), clean, { merge: true })
+        await upsertInternalComm(db, next)
       } catch {
         // ignore
       }
@@ -542,7 +570,7 @@ export function CommsPage() {
       readBy: {},
     }
 
-    const all = loadAllMerged()
+    const all = loadAllMerged(cloudItems)
     all.push(item)
     saveAllToLocal(all)
     setItems(all)
@@ -552,16 +580,20 @@ export function CommsPage() {
     const db = tryGetFirestoreDb()
     if (db) {
       try {
-        const clean = JSON.parse(JSON.stringify(item))
-        await setDoc(doc(db, FirestoreCollections.internalComms, String(item.id)), clean, { merge: true })
+        await upsertInternalComm(db, item)
+        setCloudItems((cur) => {
+          const ex = cur.find((x) => x.id === item.id)
+          if (ex) return cur
+          return [...cur, item]
+        })
       } catch {
         // ignore
       }
       try {
-        const emails = expandCommsRecipientEmailsCompat(item)
+        const emails = expandCommsRecipientEmails(item, { users: activeUsers, teams })
         if (emails.length) {
-          const who = resolveAuthorNameByEmail(item.authorEmail)
-          const dest = commDestinationLabelCompat(item)
+          const who = activeUsers.find((x) => normEmail(x.email) === normEmail(item.authorEmail))?.name || normEmail(item.authorEmail) || 'Autor'
+          const dest = commDestinationLabel(item, { users: activeUsers, teams })
           const subj = String(item.title || 'Comunicado interno').slice(0, 160)
           const message = `Enviado por: ${who}. Enviado para: ${dest}. “${subj}”`
           await batchAddInAppNotifications({
@@ -586,27 +618,27 @@ export function CommsPage() {
   }
 
   const teamOptions = useMemo(() => {
-    const arr = (window as any)?._cache?.teams
-    const teams = Array.isArray(arr) ? arr : []
     return teams
       .slice()
       .sort((a: any, b: any) => String(a?.nome || '').localeCompare(String(b?.nome || '')))
-      .map((t: any) => ({ id: String(t.id), label: String(t.nome || 'Equipe'), hint: String(t.lider || ''), count: (t?.membros || []).length }))
-  }, [ready])
+      .map((t: any) => ({
+        id: String(t.id),
+        label: String((t as any).nome || (t as any).name || 'Equipe'),
+        hint: String((t as any).lider || ''),
+        count: Array.isArray((t as any)?.membros) ? (t as any).membros.length : 0,
+      }))
+  }, [teams])
 
   const userOptions = useMemo(() => {
-    const arr = (window as any)?._cache?.users
-    const users = Array.isArray(arr) ? arr : []
     const qq = normalize(userQ)
-    return users
-      .filter((u: any) => u?.active !== false)
+    return activeUsers
       .filter((u: any) => {
         if (!qq) return true
         return normalize(String(u?.name || '')).includes(qq) || normalize(String(u?.email || '')).includes(qq)
       })
       .slice(0, 12)
       .map((u: any) => ({ email: String(u.email), name: String(u.name || u.email), role: String(u.role || '') }))
-  }, [ready, userQ])
+  }, [activeUsers, userQ])
 
   return (
     <section>

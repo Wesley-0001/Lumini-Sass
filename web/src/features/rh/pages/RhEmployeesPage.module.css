@@ -112,3 +112,211 @@
   color: #b45309;
   margin: 0;
 }
+
+.warningBox {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #fff7ed;
+  border: 1px solid #fdba74;
+  color: #9a3412;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  margin: 0 0 14px;
+}
+
+.matriculaHint {
+  margin-left: 8px;
+  font-size: 10px;
+  color: #9ca3af;
+  font-weight: 400;
+}
+
+.progressInline {
+  font-size: 12px;
+  font-weight: 700;
+  color: #6b7280;
+}
+
+/* Estilos globais do legado (apenas o necessário para a tabela de funcionários) */
+:global(.table-wrapper) {
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+:global(.data-table) {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+:global(.data-table th) {
+  background: #f9fafb;
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+}
+
+:global(.data-table td) {
+  padding: 14px 16px;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 14px;
+  vertical-align: middle;
+}
+
+:global(.data-table tbody tr:last-child td) {
+  border-bottom: none;
+}
+
+:global(.data-table tbody tr:hover td) {
+  background: #f9fafb;
+}
+
+:global(.emp-name-cell) {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+:global(.emp-avatar-sm) {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, #002b5b, #1b4f8a);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+:global(.emp-name) {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+:global(.emp-meta) {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+:global(.role-cell) {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+:global(.role-current) {
+  font-weight: 500;
+  color: #374151;
+}
+
+:global(.role-arrow) {
+  color: #9ca3af;
+}
+
+:global(.role-desired) {
+  font-weight: 500;
+  color: #002b5b;
+}
+
+:global(.progress-wrap) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 120px;
+}
+
+:global(.progress-bar-bg) {
+  flex: 1;
+  height: 6px;
+  background: #f3f4f6;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+:global(.progress-bar-fill) {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.6s;
+}
+
+:global(.progress-bar-fill.green) {
+  background: #16a34a;
+}
+
+:global(.progress-bar-fill.yellow) {
+  background: #d97706;
+}
+
+:global(.progress-bar-fill.red) {
+  background: #dc2626;
+}
+
+:global(.progress-pct) {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  min-width: 30px;
+}
+
+:global(.status-badge) {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+:global(.status-registered) {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+:global(.status-period) {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+:global(.status-ready) {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+:global(.status-approved) {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+:global(.status-promoted) {
+  background: #ede9fe;
+  color: #7c3aed;
+}
+
+:global(.status-pending-carlos) {
+  background: #f3e8ff;
+  color: #9333ea;
+}
+
+:global(.status-pending-samuel) {
+  background: #fff7ed;
+  color: #ea580c;
+}
+
+:global(.status-pending-samuel-return) {
+  background: #fff1f2;
+  color: #e11d48;
+}

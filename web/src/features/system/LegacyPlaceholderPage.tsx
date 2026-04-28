@@ -2,6 +2,9 @@ import { Navigate, useParams } from 'react-router-dom'
 import { usePermissions } from '@/app/providers/permissionsContext'
 import { useStaffAuth } from '@/app/providers/staffAuthContext'
 import { KNOWN_LEGACY_PAGE_IDS, LEGACY_PAGE_TITLES } from '@/lib/legacyRoutes'
+import { RhEmployeesPage } from '@/features/rh/pages/RhEmployeesPage'
+import { SupervisorOverviewPage } from '@/features/supervisor/pages/SupervisorOverviewPage'
+import { PromotionsPage } from '@/features/promotions/PromotionsPage'
 
 /** Placeholder para telas legadas endereçadas por `data-page` (rota `/app/p/:pageId`). */
 export function LegacyPlaceholderPage() {
@@ -15,6 +18,21 @@ export function LegacyPlaceholderPage() {
 
   if (!user || !canSeePage(pageId)) {
     return <Navigate to="/app/dashboard" replace />
+  }
+
+  // Migração incremental: Funcionários (RH) já usa React.
+  if (pageId === 'rh-employees' || pageId === 'admin-rh-employees') {
+    return <RhEmployeesPage />
+  }
+
+  // Migração incremental: "Acompanhamento por Supervisor" já usa React + service (sem window.*, sem LegacyBridge).
+  if (pageId === 'admin-supervisors') {
+    return <SupervisorOverviewPage />
+  }
+
+  // Migração incremental: Promoções (Histórico) — espelho de `renderPromoHistory`/`renderSupervisorPromoPage` do legado.
+  if (pageId === 'supervisor-promo-history') {
+    return <PromotionsPage />
   }
 
   const title = LEGACY_PAGE_TITLES[pageId] ?? pageId

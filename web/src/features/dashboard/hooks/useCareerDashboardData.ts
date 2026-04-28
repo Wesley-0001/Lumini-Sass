@@ -29,6 +29,7 @@ function mapEmployeeDocs(docs: QueryDocumentSnapshot<DocumentData>[]): CareerEmp
       status: typeof raw.status === 'string' ? raw.status : undefined,
       minMonths: typeof raw.minMonths === 'number' ? raw.minMonths : null,
       supervisor: typeof raw.supervisor === 'string' ? raw.supervisor : undefined,
+      rhLider: typeof raw.rhLider === 'string' ? raw.rhLider : undefined,
       currentRole: typeof raw.currentRole === 'string' ? raw.currentRole : undefined,
       desiredRole:
         raw.desiredRole === null || typeof raw.desiredRole === 'string' ? (raw.desiredRole as string | null) : undefined,

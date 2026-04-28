@@ -1,0 +1,257 @@
+.mutedLine {
+  color: var(--text-muted, #6b7280);
+  margin: 8px 0 0;
+}
+
+.errorText {
+  color: var(--danger, #b91c1c);
+  margin: 0;
+}
+
+.kpiAnim {
+  animation: fadeInUp 180ms ease-out;
+}
+
+.section {
+  margin-top: 16px;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.activeFilters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 4px;
+}
+
+.filterTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  padding: 6px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(148, 163, 184, 0.08);
+  color: var(--text, #111827);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.filterTagPrefix {
+  color: var(--text-muted, #6b7280);
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.filterTagValue {
+  max-width: min(56vw, 520px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.filterTagRemove {
+  border: 0;
+  background: transparent;
+  color: var(--text-muted, #6b7280);
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 999px;
+  line-height: 1;
+  transition: background 120ms ease, color 120ms ease, transform 120ms ease;
+}
+
+.filterTagRemove:hover {
+  background: rgba(148, 163, 184, 0.18);
+  color: var(--text, #111827);
+}
+
+.filterTagRemove:active {
+  transform: translateY(1px);
+}
+
+.filterTagRemove:focus-visible {
+  outline: 2px solid rgba(59, 130, 246, 0.55);
+  outline-offset: 2px;
+}
+
+.clearFilterBtn {
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text, #111827);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
+}
+
+.clearFilterBtn:hover {
+  background: rgba(148, 163, 184, 0.12);
+  border-color: rgba(148, 163, 184, 0.55);
+}
+
+.clearFilterBtn:active {
+  transform: translateY(1px);
+}
+
+.clearFilterBtn:focus-visible {
+  outline: 2px solid rgba(59, 130, 246, 0.55);
+  outline-offset: 2px;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.sectionSubtitle {
+  margin: 4px 0 0;
+  color: var(--text-muted, #6b7280);
+  font-size: 13px;
+}
+
+.simpleList {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+  display: grid;
+  gap: 10px;
+}
+
+.simpleListItem {
+  padding: 10px 12px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.empName {
+  font-weight: 700;
+}
+
+.empMeta {
+  margin-top: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--text-muted, #6b7280);
+  font-size: 13px;
+}
+
+.empSep {
+  opacity: 0.6;
+}
+
+.empRole {
+  color: inherit;
+}
+
+.empTenure {
+  color: inherit;
+}
+
+.chartSection {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.chartTitle {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.barChart {
+  margin-top: 10px;
+  display: grid;
+  gap: 10px;
+}
+
+.barRow {
+  display: grid;
+  grid-template-columns: minmax(120px, 220px) 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.barRowInteractive {
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 10px;
+  transition: background 120ms ease, transform 120ms ease;
+}
+
+.barRowInteractive:hover {
+  background: rgba(148, 163, 184, 0.08);
+}
+
+.barRowInteractive:active {
+  transform: translateY(1px);
+}
+
+.barRowInteractive:focus-visible {
+  outline: 2px solid rgba(59, 130, 246, 0.55);
+  outline-offset: 2px;
+}
+
+.barRowActive {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.barLabel {
+  font-size: 13px;
+  color: var(--text, #111827);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.barTrack {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.22);
+  overflow: hidden;
+}
+
+.barFill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.9), rgba(16, 185, 129, 0.85));
+}
+
+.barFillActive {
+  background: linear-gradient(90deg, rgba(37, 99, 235, 0.95), rgba(20, 184, 166, 0.9));
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.25) inset;
+}
+
+.barValue {
+  min-width: 28px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  color: var(--text-muted, #6b7280);
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
