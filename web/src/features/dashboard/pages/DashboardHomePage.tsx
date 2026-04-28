@@ -305,11 +305,36 @@ export function DashboardHomePage() {
 
   const shouldUseLegacyDashboard = legacyRole !== null
 
-  // Quando o legado estiver ativo e pronto, ele passa a ser o principal.
+  /** Card "Módulos liberados para você" — aparece em todos os perfis e estados. */
+  const modulesCard = (
+    <Card className={styles.spaced}>
+      <h3 className="section-title">
+        <i className="fas fa-th-large" aria-hidden />
+        Módulos liberados para você
+      </h3>
+      {allowed.length === 0 ? (
+        <p className={styles.pMuted}>
+          Nenhum módulo além do painel (verificar role e overrides em localStorage).
+        </p>
+      ) : (
+        <ul className={styles.list}>
+          {allowed.map((m) => (
+            <li key={m.key}>
+              <strong>{m.label}</strong> — <code className={styles.code}>/app/m/{m.key}</code>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  )
+
+  // Quando o legado estiver ativo e pronto, ele é o conteúdo principal;
+  // o card de módulos é anexado abaixo para todos os perfis.
   if (shouldUseLegacyDashboard) {
     return (
       <section>
         <LegacyDashboardBridge role={legacyRole} />
+        {modulesCard}
       </section>
     )
   }
@@ -413,23 +438,7 @@ export function DashboardHomePage() {
         </Card>
       )}
 
-      <Card className={styles.spaced}>
-        <h3 className="section-title">
-          <i className="fas fa-th-large" aria-hidden />
-          Módulos liberados para você
-        </h3>
-        {allowed.length === 0 ? (
-          <p className={styles.pMuted}>Nenhum módulo além do painel (verificar role e overrides em localStorage).</p>
-        ) : (
-          <ul className={styles.list}>
-            {allowed.map((m) => (
-              <li key={m.key}>
-                <strong>{m.label}</strong> — <code className={styles.code}>/app/m/{m.key}</code>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
+      {modulesCard}
     </section>
   )
 }

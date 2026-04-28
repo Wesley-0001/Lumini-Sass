@@ -3,18 +3,27 @@ import type { PermissionModule } from '@/types/permissions'
 
 /** Mapeia `data-page` do HTML legado para rota de módulo com permissão explícita (espelho do legado + rotas da casca). */
 const PAGE_TO_MODULE: Partial<Record<string, PermissionModule>> = {
+  // Módulos diretos
   comms: 'comms',
   purchases: 'purchases',
+  // Careers
   'admin-careers': 'careers',
+  // Matrix
   'admin-matrix': 'matrix',
+  // Users
   'admin-users': 'users',
+  // Evaluations
   'admin-evaluations': 'evaluations',
+  // Reports
   'admin-reports': 'reports',
+  // Teams
   'admin-teams': 'teams',
   'manager-teams': 'teams',
+  // Turnover
   'rh-turnover': 'turnover',
   'admin-rh-turnover': 'turnover',
   'boss-rh-turnover': 'turnover',
+  // RH
   'rh-dashboard': 'rh',
   'admin-rh-dashboard': 'rh',
   'boss-rh-dashboard': 'rh',

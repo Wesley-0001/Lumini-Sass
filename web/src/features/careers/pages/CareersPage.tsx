@@ -74,6 +74,7 @@ function CareerModal({ career, onClose, onSave }: CareerModalProps) {
 
   return (
     <Modal
+      open
       title={career.name ? `Editar: ${career.name}` : 'Novo Cargo na Trilha'}
       onClose={onClose}
       footer={
@@ -334,7 +335,7 @@ export function CareersPage() {
 
       {/* Modal: visualizar */}
       {viewCareer && (
-        <Modal title={viewCareer.name} onClose={() => setViewCareer(null)}>
+        <Modal open title={viewCareer.name} onClose={() => setViewCareer(null)}>
           <div className={styles.viewBody}>
             <div className={styles.viewMeta}>
               <span
@@ -409,6 +410,7 @@ export function CareersPage() {
       {/* Modal: confirmar exclusão */}
       {delConfirm && (
         <Modal
+          open
           title="Confirmar Exclusão"
           onClose={() => setDelConfirm(null)}
           footer={

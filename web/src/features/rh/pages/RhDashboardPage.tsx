@@ -17,7 +17,6 @@ import {
   resolveSetor,
   SETORES_ORDER,
   SETOR_COLORS,
-  hrTenureText,
   MONTH_NAMES,
 } from '@/features/hr/data/hrHelpers'
 import type { HREmployee } from '@/features/hr/types/hrTypes'

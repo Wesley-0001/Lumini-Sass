@@ -2,7 +2,7 @@ import Chart from 'chart.js/auto'
 
 declare global {
   interface Window {
-    Chart?: typeof Chart
+    Chart?: any
     XLSX?: unknown
     // legacy renderers (partial)
     renderAdminDashboard?: () => void
