@@ -48,6 +48,25 @@ const SUP_COLORS: Record<string, SupervisorColors> = {
   'diretor@lumini': { bg: '#B45309', light: '#FEF3C7', text: '#fff' },
 }
 
+const FALLBACK_COLORS: readonly SupervisorColors[] = [
+  { bg: '#0B5CAD', light: '#DBEAFE', text: '#fff' }, // blue
+  { bg: '#0F766E', light: '#CCFBF1', text: '#fff' }, // teal
+  { bg: '#7B2D8B', light: '#F0E4F6', text: '#fff' }, // purple
+  { bg: '#92400E', light: '#FEF3C7', text: '#fff' }, // amber/brown
+  { bg: '#14532D', light: '#DCFCE7', text: '#fff' }, // green
+  { bg: '#991B1B', light: '#FEE2E2', text: '#fff' }, // red
+]
+
+function hashIndex(key: string, mod: number): number {
+  let h = 0
+  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0
+  return mod === 0 ? 0 : h % mod
+}
+
+function colorsForSupervisorKey(key: string): SupervisorColors {
+  return FALLBACK_COLORS[hashIndex(key, FALLBACK_COLORS.length)] ?? { bg: '#6B7280', light: '#F3F4F6', text: '#fff' }
+}
+
 function roleLabel(role: DemoStaffUserRecord['role']): string {
   if (role === 'manager') return 'Gerente'
   if (role === 'boss') return 'Diretor'
@@ -84,7 +103,7 @@ export function buildSupervisorOverviewModel(args: {
     const promoted = team.filter((e) => isPromoAggStatus(e.status)).length
     const evalsDone = evaluations.filter((ev) => team.some((e) => e.id === ev.employeeId)).length
     const efficiency = team.length > 0 ? Math.round(((team.length - ready) / team.length) * 100) : null
-    const colors = SUP_COLORS[sup.email] ?? { bg: '#6B7280', light: '#F3F4F6', text: '#fff' }
+    const colors = SUP_COLORS[sup.email] ?? colorsForSupervisorKey(sup.email)
 
     const teamPreview = team.slice(0, 5).map((e) => {
       const si = getStatusInfo(e)

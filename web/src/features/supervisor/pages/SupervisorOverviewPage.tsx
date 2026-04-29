@@ -2,9 +2,12 @@ import { useMemo, useState } from 'react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Card } from '@/components/ui'
 import { useCareerDashboardData } from '@/features/dashboard/hooks/useCareerDashboardData'
+import { useHREmployees } from '@/features/hr/hooks/useHREmployees'
 import { DEMO_STAFF_USERS } from '@/data/demoStaffUsers'
 import { getInitials } from '@/lib/dashboard/adminLegacy'
 import { buildSupervisorOverviewModel, type SupervisorOverviewRow } from '@/features/supervisor/supervisorService'
+import type { CareerEmployee } from '@/lib/dashboard/careerKpi'
+import type { HREmployee } from '@/features/hr/types/hrTypes'
 
 type SortKey = 'name' | 'team' | 'pending' | 'efficiency'
 
@@ -20,21 +23,73 @@ function sortRows(rows: SupervisorOverviewRow[], sort: SortKey): SupervisorOverv
   return copy
 }
 
+function normalizeHumanName(s: string): string {
+  return s
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+}
+
+function mapHRToCareerEmployees(hrEmployees: HREmployee[]): CareerEmployee[] {
+  const staffByName = new Map(
+    DEMO_STAFF_USERS.map((u) => [normalizeHumanName(u.name), u.email] as const),
+  )
+
+  return hrEmployees
+    .filter((e) => e.situacao !== 'DESLIGADO')
+    .map((e) => {
+      const leaderName = typeof e.lider === 'string' ? e.lider.trim() : ''
+      const supervisorEmail = leaderName ? staffByName.get(normalizeHumanName(leaderName)) : undefined
+      return {
+        id: String(e.matricula ?? '').trim() || `hr:${(e.nome || '').trim() || 'sem-matricula'}`,
+        name: (e.nome || '').trim() || undefined,
+        rhMatricula: e.matricula ? String(e.matricula) : undefined,
+        admission: (e.admissao || '').trim() || undefined,
+        status: 'ready',
+        minMonths: null,
+        supervisor: supervisorEmail,
+        rhLider: leaderName || undefined,
+        currentRole: (e.cargo || '').trim() || undefined,
+        desiredRole: null,
+        sector: (e.setor || '').trim() || undefined,
+        team: (e.setor || '').trim() || undefined,
+      }
+    })
+}
+
 export function SupervisorOverviewPage() {
   const data = useCareerDashboardData()
+  const hr = useHREmployees()
 
   const [query, setQuery] = useState('')
   const [sort, setSort] = useState<SortKey>('name')
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
 
+  const effectiveData = useMemo(() => {
+    if (data.status === 'ready') {
+      return { employees: data.employees, evaluations: data.evaluations, source: 'firebase' as const }
+    }
+
+    if (hr.status === 'ready') {
+      return { employees: mapHRToCareerEmployees(hr.employees), evaluations: [], source: 'hr_seed' as const }
+    }
+
+    if (hr.status === 'error') {
+      return { employees: mapHRToCareerEmployees(hr.employees), evaluations: [], source: 'hr_seed' as const }
+    }
+
+    return null
+  }, [data, hr])
+
   const model = useMemo(() => {
-    if (data.status !== 'ready') return null
+    if (!effectiveData) return null
     return buildSupervisorOverviewModel({
-      employees: data.employees,
-      evaluations: data.evaluations,
+      employees: effectiveData.employees,
+      evaluations: effectiveData.evaluations,
       staffUsers: DEMO_STAFF_USERS,
     })
-  }, [data])
+  }, [effectiveData])
 
   const filtered = useMemo(() => {
     if (!model) return []
@@ -55,7 +110,7 @@ export function SupervisorOverviewPage() {
         subtitle="Eficiência de cada equipe — visão hierárquica completa"
       />
 
-      {data.status === 'loading' && (
+      {(data.status === 'loading' || hr.status === 'loading') && !model && (
         <p style={{ color: 'var(--text-muted, #9CA3AF)', fontSize: 14 }}>
           <i className="fas fa-spinner fa-pulse" aria-hidden /> Carregando…
         </p>
@@ -64,7 +119,7 @@ export function SupervisorOverviewPage() {
       {data.status === 'no_firebase' && (
         <Card>
           <p style={{ color: 'var(--text-muted, #9CA3AF)', fontSize: 14 }}>
-            Não foi possível conectar ao Firebase no momento. Verifique a configuração do app.
+            Não foi possível conectar ao Firebase no momento. Exibindo dados locais para não bloquear a página.
           </p>
         </Card>
       )}
@@ -74,6 +129,11 @@ export function SupervisorOverviewPage() {
           <p style={{ color: '#DC2626', fontSize: 14 }}>
             <i className="fas fa-exclamation-triangle" aria-hidden /> {data.message}
           </p>
+          {effectiveData?.source === 'hr_seed' ? (
+            <p style={{ color: 'var(--text-muted, #9CA3AF)', fontSize: 12, marginTop: 6 }}>
+              Exibindo dados locais (RH seed) enquanto o Firebase está indisponível.
+            </p>
+          ) : null}
         </Card>
       )}
 
